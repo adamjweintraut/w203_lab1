@@ -1,6 +1,6 @@
 ---
 title: 'Lab 1: Hypothesis Testing'
-author: "w203 Teaching Team"
+author: "Adam Weintraut"
 output:
   pdf_document:
     toc: false
@@ -39,8 +39,8 @@ You design the following test to evaluate your aunt's claim:  You flip the coins
 
 Your null hypothesis is that $p=1/2$, and you plan to reject the null if your test statistic is 0 or 6. 
 
-1. What is the type 1 error rate of your test?
-2. What is the power of your test for the alternate hypothesis that $p=3/4$?
+1. What is the type 1 error rate of your test? .03125
+2. What is the power of your test for the alternate hypothesis that $p=3/4$? .105
 
 \newpage
 ## Wrong Test, Right Data
@@ -49,6 +49,14 @@ Imagine that your organization surveys a set of customers to see how much they l
 A Likert scale is one where a person is provided ordered categories that range from lowest to highest. You can read more about them in this seminal research design text by [Fowler](https://www.amazon.com/Survey-Research-Methods-Applied-Social/dp/1452259003/ref=sr_1_2?crid=2YVDNQW6HX5BZ&keywords=fowler+survey+research+methods&qid=1644867641&sprefix=fowler+survey+%2Caps%2C166&sr=8-2), or this brief [overview](https://www.simplypsychology.org/likert-scale.html). 
 If you were to run a paired t-test using this data, what consequences would the violation of the metric scale assumption have for your interpretation of the test results? What would you propose to do to remedy this problem? 
 
+
+
+
+Using a paired test is correct, because our null hypothesis should be that there is no difference between how much a person likes the mobile website and the regular website. Additionally, each person answers the questions, so the data is dependent by person. 
+
+However, Likert Scales have ordinal data, and the t-test assumes metric data since it seeks to find the differences between the means of the samples. This means that we would need to make the assumption that the Likert Scale's variations in answers all mean the same thing, which they don't. This can be seen easily when we examine the difference between a 2 and a 3, versus a 4 and a 5 on the Scale. Additionally, people rank their emotions differently, so we care more about what the difference between their two rankings is.
+
+Since we don't want to measure for the mean, and we have ordinal data, we should use Wilcoxon Paired Test instead. This will measure for paired differences between the samples instead of paired means, which is a better way to compare customer's sentiment. It also can handle signed-rank data, which is important for this "difference" calculation.
 
 \newpage
 ## Test Assumptions
@@ -60,14 +68,103 @@ The file [`datasets/Happiness_WHR.csv`](./datasets/happiness_WHR.csv) is subsett
 
 > This is called the Cantril ladder: it asks respondents to think of a ladder, with the best possible life for them being a 10, and the worst possible life being a 0. They are then asked to rate their own current lives on that 0 to 10 scale. The rankings are from nationally representative samples, for the years 2018-2020.
 
+>> This tries to make it so that this is a metric, but it still isn't. 
+
 You would like to know whether people in countries with high GDP per capita (higher than the mean) are more happy or less happy than people in countries with low GDP (lower than the mean).
 
 List all assumptions for a two-sample t-test. Then evaluate each assumption, presenting evidence based on your background knowledge, visualizations, and numerical summaries.
+
+> iid
+> paired or unpaired
+  > We should use an unpaired test, we have split into "high gdp" and "low gdp", based on the mean. Since these sets are disjoint, we 
+
+> metric data
+  > Although their preface aims to make it metric, I believe this data is ordinal because it is a ranking. Using a t-test is to test the mean.
+> normal distribution
+  > n<30 -> must be normalish
+  > n>30 -> CLT
+  
+> Mann-Whitney Test: compares the medians of the two samples, more applicable for ranking.
+
+```{r}
+happy <- read.csv('./datasets/happiness_WHR.csv')
+
+summary(happy)
+
+non_null_gdp <- !is.na(happy$Log.GDP.per.capita)
+
+# find mean -- 
+## is our mean_gdp calculated  accurately? log(mean) or mean(log) ?
+mean_log_gdp <- mean(happy$Log.GDP.per.capita[non_null_gdp])
+print(paste0("mean_log_gdp: ", mean_log_gdp))
+
+# create flag for high gdp
+happy$high_gdp_f <- happy$Log.GDP.per.capita > mean_log_gdp
+
+# high gdp sample size - 121
+high_gdp_sample_size <- sum(!is.na(happy$Log.GDP.per.capita[happy$high_gdp_f==T]))
+print(paste0("high gdp sample size: ", high_gdp_sample_size))
+
+# low gdp sample size - 105
+low_gdp_sample_size <- sum(!is.na(happy$Log.GDP.per.capita[happy$high_gdp_f==F]))
+print(paste0("low gdp sample size: ", low_gdp_sample_size))
+
+## is our mean_gdp calculated  accurately? 
+# For 2 sampled t-test, we need to assume
+# - iid
+#      - disjoint samples based on mean gdp cutoff 
+# - continuous
+#      - gdp, log, seems continuous
+# - normally distributed
+#      - n < 30 : need normal distribution
+#      - n > 30 : CLT
+# - parametric or non-parametric?
+# - paired or unpaired?
+
+happy$Life.Ladder
+
+afg_ss <- sum(!is.na(happy$Life.Ladder[happy$Country.name=='Afghanistan']))
+
+
+```
+
+
+
 
 ### Legislators
 The file [`datasets/legislators-current.csv`](./datasets/legislators-current.csv) is taken from the [congress-legislators project](https://github.com/unitedstates/congress-legislators) on Github.  You would like to test whether Democratic or Republican senators are older.
 
 List all assumptions for a Wilcoxon rank-sum test. Then evaluate each assumption, presenting evidence based on your background knowledge, visualizations, and numerical summaries.
+
+- get all senators and their ages (from birthday)
+- split up into democrats / republicans
+- 
+- Could test on bucketing on age groups to define this
+
+- Wicoxon rank-sum
+  - NO REQUIREMENT FOR NORMALITY, we don't care for this one.
+- i.i.d. 
+  - CLT - test sample size for each group > 30
+  - identical - distribution is same as what you test 
+  - independent - one sample has nothing to do with the other. you can't change their age
+
+- ordinal
+  - why is the age ordinal? is it? 
+    - argument for: age is an integer value, not continuous (unless we include months, is this natural?)
+    - argument against: age is a metric and its distance is valuable.
+    
+- paired or unpaired?
+  - unpaired, 
+```{r}
+
+legs <- read.csv('./datasets/legislators-current.csv')
+summary(legs)
+
+```
+- Wicoxon rank-sum 
+ordinal var 
+i.i.d. 
+
 
 ### Wine and health
 The dataset `wine` can be accessed by installing the `wooldridge` package.  
@@ -80,6 +177,36 @@ The dataset `wine` can be accessed by installing the `wooldridge` package.
 It contains observations of variables related to wine consumption for 21 countries.  You would like to use this data to test whether countries have more deaths from heart disease or from liver disease.
 
 List all assumptions for a signed-rank test. Then evaluate each assumption, presenting evidence based on your background knowledge, visualizations, and numerical summaries.
+
+Wicoxon signed-rank 
+- paired
+  - this is true, each row has the same value 
+  
+- metric var 
+  - continuous value, death counts.
+  
+- i.i.d. 
+  - each country's deaths are independent to one another, but it's not id distributed since we only have 21 countries out of all the countries in the world. If we are trying to use this data to test whether countries have more deaths from heart or liver, we don't have enough data to represent the other countries.
+  
+- difference is symmetric
+  - not sure.
+  - continuous symmetric distribution?
+  - how do we prove this without actually doing the test???
+  - 
+
+
+```{r}
+# install.packages("wooldridge")
+library(wooldridge)
+
+?wine
+wine
+
+summary(wine)
+
+```
+
+
 
 ### Attitudes toward the religious
 The file [`datasets/GSS_religion`](./datasets/GSS_religion.csv) is a subset of data from the 2004 General Social Survey (GSS).  
@@ -95,6 +222,49 @@ The variables `prottemp` and `cathtemp` are measurements of how a respondent fee
 You would like to test whether the US population feels more positive towards Protestants or towards Catholics.
 
 List all assumptions for a paired t-test. Then evaluate each assumption, presenting evidence based on your background knowledge, visualizations, and numerical summaries. 
+
+
+
+paired t-test?
+- should be paired, each person has values for each (or gives the metrics)
+  - same subject for each scenario
+
+
+metric?
+- argue ordinal instead.
+  - discrete
+  - ranking (sentiment, feeling)
+    - similar to ladder.
+  - how do we explain the "difference" between values? 
+  - "how much in favor" hard to quantify
+  
+
+i.i.d ?
+- conditional approval but not enough info bla bla bla
+  - independent
+    - we think yes? but they need to talk about how they sampled 
+      - are the people in the same household? 
+      - demographic constraints?
+  - identically distributed
+    - Does this represent the entire US Population? Look at the survey to see if we are accurately representing the US pop.
+    - maybe, can't guarantee, not enough data here.
+
+
+```{r}
+religion = read.csv('./datasets/GSS_religion.csv')
+summary(religion)
+# possible to recognize one group? 
+# did they not include them in the sample we see? - this makes sense
+# are there any rows with a null catholic and a protestant
+sum(is.na(religion$cathtemp))
+sum(is.na(religion$prottemp))
+
+
+```
+
+
+
+
 
 \newpage
 # Part 2: Statistical Analysis
