@@ -287,6 +287,68 @@ For a glimpse into some of the intricacies that go into the design of this study
 
 Like many modern surveys, the ANES includes survey weights, which are used to correct for situations in which members of one demographic group are more likely to respond to the survey than members of another demographic group. (The target proportions are ultimately based on US census data). The survey weights make it possible to generalize from the a population that represents people who take the survey to a population that represents the United States as a whole. These weights are beyond the scope of our class and you are not expected to utilize them. You will still be able to learn about a population model, even if applicability to the US population is limited.
 
+```{r}
+all_data <- read.csv("./datasets/anes_timeseries_2020_csv_20220210.csv")
+
+
+all_data$how_voted <- all_data$V201024
+all_data$reg_deadline <- all_data$V202114a # did not meet the registration deadline
+all_data$reg_nowhere <- all_data$V202114b # did not know where or how to register
+all_data$reg_residency <-  all_data$V202114c # did not meet residency reqs
+all_data$reg_form <- all_data$V202114d # registration form not filed correctly
+all_data$reg_id <- all_data$V202114e # did not have required identification
+all_data$reg_no_interest <- all_data$V202114f # had no interest in the election
+all_data$reg_no_difference <- all_data$V202114g # my vote wouldn't make a difference
+all_data$reg_disability <- all_data$V202114h # had a permanent disability or illness
+all_data$reg_no_english <- all_data$V202114i # has difficulty with english
+all_data$reg_not_eligible <- all_data$V202114j # not eligible to vote
+all_data$reg_other <- all_data$V202114k # other
+
+all_data$party <- all_data$V201018 
+all_data$difficulty_scale <- all_data$V202119 # Likert Scale on Difficulty
+
+
+
+data <- all_data[, c('party', 'difficulty_scale')]
+
+data
+
+# democrat = 1
+dems <- data[((data$party == 1) & (data$difficulty_scale > 0)),]
+# republican
+reps <- data[((data$party == 2) & (data$difficulty_scale > 0)),]
+
+dems_sample_size <- sum(!is.na(dems$difficulty_scale))
+print(paste("democrat sample size", dems_sample_size))
+
+reps_sample_size <- sum(!is.na(reps$difficulty_scale))
+print(paste("reps sample size", reps_sample_size))
+
+
+
+hist(dems$difficulty_scale)
+hist(reps$difficulty_scale)
+
+
+# assumptions
+# dem and reps equally likely to have diffulty in voting
+# iid
+# unpaired (can't be dem and rep, each person has one )
+# ordinal (likert scale basically)
+
+# null hypothesis: reps and dems had the same difficulty in voting
+# alternative: checking 
+wilcox.test(reps$difficulty_scale, dems$difficulty_scale, alternative = "two.sided") # their difficulty is not equal
+
+# Ha = reps had more difficulty than the dems
+wilcox.test(reps$difficulty_scale, dems$difficulty_scale, alternative = "greater") 
+
+# Ha = reps had less diffulty than the dems
+wilcox.test(reps$difficulty_scale, dems$difficulty_scale, alternative = "less") 
+
+```
+
+
 ## The research question
 
 Use the ANES data to address the following question:
