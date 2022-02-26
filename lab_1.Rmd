@@ -48,9 +48,7 @@ Imagine that your organization surveys a set of customers to see how much they l
 
 A Likert scale is one where a person is provided ordered categories that range from lowest to highest. You can read more about them in this seminal research design text by [Fowler](https://www.amazon.com/Survey-Research-Methods-Applied-Social/dp/1452259003/ref=sr_1_2?crid=2YVDNQW6HX5BZ&keywords=fowler+survey+research+methods&qid=1644867641&sprefix=fowler+survey+%2Caps%2C166&sr=8-2), or this brief [overview](https://www.simplypsychology.org/likert-scale.html). 
 If you were to run a paired t-test using this data, what consequences would the violation of the metric scale assumption have for your interpretation of the test results? What would you propose to do to remedy this problem? 
-
-
-
+\
 
 Using a paired test is correct, because our null hypothesis should be that there is no difference between how much a person likes the mobile website and the regular website. Additionally, each person answers the questions, so the data is dependent by person. 
 
@@ -311,7 +309,7 @@ all_data$difficulty_scale <- all_data$V202119 # Likert Scale on Difficulty
 
 data <- all_data[, c('party', 'difficulty_scale')]
 
-data
+# data
 
 # democrat = 1
 dems <- data[((data$party == 1) & (data$difficulty_scale > 0)),]
