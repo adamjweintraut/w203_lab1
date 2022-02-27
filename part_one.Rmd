@@ -141,7 +141,7 @@ library(wooldridge)
 
 Independent: Each country's deaths are independent of each other. There are no variables that can give information about the size of another country's death.
 
-Identical: The sample is **not** identical. We do not know if the 21 countries were randomly chosen from the same world population of around 200 countries. All of the countries chosen have very GDP, which is not representative of all countries including those with lower GDPs like those in Africa.
+Identical: The sample is **not** identical. We do not know if the 21 countries were randomly chosen from the same world population of around 200 countries. All of the countries chosen have very high GDP, which is not representative of all countries including those with lower GDPs like those in Africa.
 
 **Metric**
 
@@ -191,8 +191,6 @@ The data based on the feeling thermometer is ordinal instead of metric. This is 
 **(Not too un-)normal**
 
 We could state that the distribution is normal. It is not too un-normal because the histogram does vaguely resemble a bell curve. Additionally, the sample size is 802, thus we could utilize CLT to assume normality.
-
-On the other hand, we could argue that the data is skewed with a large sample size, thus the population may also be skewed.
 
 ```{r}
 religion = read.csv('./datasets/GSS_religion.csv')
