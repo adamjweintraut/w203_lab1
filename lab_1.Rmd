@@ -288,6 +288,8 @@ For a glimpse into some of the intricacies that go into the design of this study
 Like many modern surveys, the ANES includes survey weights, which are used to correct for situations in which members of one demographic group are more likely to respond to the survey than members of another demographic group. (The target proportions are ultimately based on US census data). The survey weights make it possible to generalize from the a population that represents people who take the survey to a population that represents the United States as a whole. These weights are beyond the scope of our class and you are not expected to utilize them. You will still be able to learn about a population model, even if applicability to the US population is limited.
 
 ```{r echo=FALSE}
+# DATA WRANGLING:
+
 # load in the data
 all_data <- read.csv("./datasets/anes_timeseries_2020_csv_20220210.csv")
 
@@ -300,9 +302,53 @@ all_data$voting_difficulty <- all_data$V202119 # Likert Scale on Difficulty
 
 # filter for what we care about
 data <- all_data[, c('pre_reg_party','prepost_reg_party', 'post_reg_party', 'leaning_party', 'voting_difficulty')]
+
+## FILTERS FOR PARTY IDENTIFICATION:
+# filter for registered democrats 
+reg_dem_filter <-  (data$pre_reg_party == 1)
+# filter for registered republicans
+reg_rep_filter <- (data$pre_reg_party == 2)
+# filter for either no party affilication or independent
+ind_rep_filter <-  (data$pre_reg_party == 4)
+# filter for leaning democrats
+lean_dem_filter <-  (data$leaning_party == 3)
+# filter for leaning republicans
+lean_rep_filter <- (data$leaning_party == 1)
+
+# include voters who register democrat 
+# include voters who register as independent/none but lean democrat
+dem_filter <-  (reg_dem_filter | (lean_dem_filter & ind_rep_filter))
+
+# include voters who lean republican, and 
+# include voters who register as independent/none but lean republican
+rep_filter <-  (reg_rep_filter | (lean_rep_filter & ind_rep_filter))
+
+# only include valid difficulty responses
+valid_difficulty_filter = (data$voting_difficulty > 0)
+
+# Create Variable for Party Assignment
+data$party_assignment <- ifelse(dem_filter,"Democrat", ifelse(rep_filter,"Republican", ""))
+
+# Create df for valid sample data:
+# party_assigment = democrat or republican
+# difficulty = positive value (valid response)
+sample_data <- data[((dem_filter | rep_filter) & valid_difficulty_filter),]
+
+nrow(sample_data)
+
+# filter for each party, only include difficulty values that are positive.
+dems <- sample_data[(sample_data$party_assignment == 'Democrat'),]
+reps <- sample_data[(sample_data$party_assignment == 'Republican'),]
+
+print(nrow(dems) + nrow(reps))
+
 ```
 
+
+
 ```{r echo=FALSE}
+# EDA
+
 # REGISTERED CONFLICTS:
 # do people flip flop parties between the times that these surveys are done?
 
@@ -326,107 +372,24 @@ post_lean_party_conflicts = nrow(data[(((data$leaning_party == 1) & (data$post_r
 # null voting difficulties:
 print(paste('Null voter difficulties: ', sum(is.na(data$voting_difficulty))))
 # show voting difficulties across all:
-hist(data$voting_difficulty)
-```
-```{r echo=FALSE}
-hist(data$leaning_party[data$voting_difficulty < 0])
-# leaning democrat registered party dist
-hist(data$pre_reg_party[data$leaning_party == 3])
-# leaning republican registered party dist
-hist(data$pre_reg_party[data$leaning_party == 1])
+# hist(data$voting_difficulty)
+
 
 ```
 
 ```{r echo=FALSE}
-# DATA WRANGLING:
 
-# filter for registered democrats 
-reg_dem_filter <-  (data$pre_reg_party == 1)
-# filter for registered republicans
-reg_rep_filter <- (data$pre_reg_party == 2)
-# filter for either no party affilication or independent
-ind_rep_filter <-  (data$pre_reg_party == 4)
-# filter for leaning democrats
-lean_dem_filter <-  (data$leaning_party == 3)
-# filter for leaning republicans
-lean_rep_filter <- (data$leaning_party == 1)
-
-# include voters who lean democrat 
-# exclude invalid answers where someone is registered as a republican
-dem_filter <-  (reg_dem_filter | (lean_dem_filter & ind_rep_filter))
-
-# include voters who lean republican, and 
-# exclude invalid answers where someone is registered as a democrat
-rep_filter <-  (reg_rep_filter | (lean_rep_filter & ind_rep_filter))
-
-# only include valid difficulty responses
-valid_difficulty_filter = (data$voting_difficulty > 0)
-# assign parties
-data$party_assignment <- ifelse(dem_filter,"Democrat", ifelse(rep_filter,"Republican", ""))
-
-# dems_pa_filter <- data$party_assignment == 'democrat'
-# reps_pa_filter <- data$party_assignment == 'republican'
-
-# filter for each party, only include difficulty values that are positive.
-dems <- data[(dem_filter & valid_difficulty_filter),]
-reps <- data[(rep_filter & valid_difficulty_filter),]
-
-# this is okay, 0 
-# print.data.frame(dems[dems$party_assignment != 'democrat'])
-# print.data.frame(reps[reps$party_assignment != 'republican'])
-
-valid_party_data <- data[((dem_filter | rep_filter) & valid_difficulty_filter),]
-
-graph_data <- valid_party_data[, c('party_assignment','voting_difficulty')]
-# used to row count
-graph_data$counter <- 1
-
-# total count aggregation, by voting choice
-total_counts <- aggregate(counter~party_assignment, graph_data, length)
-# count aggregation, by party and vote choice
-party_counts <- aggregate(counter~party_assignment+voting_difficulty, graph_data, length)
-
-party_counts$party_vote_count <- party_counts$counter
-party_counts <- party_counts[, c('party_assignment','voting_difficulty', 'party_vote_count')]
-
-total_counts$total_party_count <- total_counts$counter
-total_counts <- total_counts[, c('party_assignment', 'total_party_count')]
-
-
-graph_counts <- merge(total_counts, party_counts, 'party_assignment')
-
-graph_counts$percent <- graph_counts$party_vote_count / graph_counts$total_party_count
-
-graph_counts
-
-
-
-library(ggplot2)
-
-ggplot(graph_counts, aes(x=voting_difficulty,y=percent,fill=factor(party_assignment)))+
-  geom_bar(stat="identity",position="dodge")+
-  scale_color_discrete(name="Party",
-                      breaks=c(1, 2),
-                      labels=c("Democrat", "Republican"))+
-  xlab("Voting Difficulty (On a Scale of 1-5)")+ylab("Percent of Political Party")+ggtitle('Voting Difficulty by Political Party')+theme(plot.title = element_text(hjust = 0.5))+labs(fill="Political Party")
-
-```
-
-```{r echo=FALSE}
-# democrat analysis
+# HYPOTHESIS TESTING
+# democrats analysis
 dems_sample_size <- sum(!is.na(dems$voting_difficulty))
 print(paste("Democrat Sample Size: ", dems_sample_size))
 hist(dems$voting_difficulty)
-```
-```{r echo=FALSE}
-# republicans 
+
+# republicans analysis
 reps_sample_size <- sum(!is.na(reps$voting_difficulty))
 print(paste("Republican Sample Size: ", reps_sample_size))
 hist(reps$voting_difficulty)
 
-```
-
-```{r echo=FALSE}
 # assumptions
 # dem and reps equally likely to have difficulty in voting
 # iid (we have filtered so that groups don't overlap)
@@ -440,17 +403,46 @@ print('Ha: Republicans and Democrats had DIFFERENT voting difficulty')
 wilcox.test(reps$voting_difficulty, dems$voting_difficulty, alternative = "two.sided")
 
 # H0: reps and dems had the same voting difficulty
-# Ha: reps had more difficulty voting than dems
-# print('H0: Republicans and Democrats had the SAME voting difficulty')
-# print('Ha: Republicans had MORE difficulty voting than Democrats')
-# wilcox.test(reps$voting_difficulty, dems$voting_difficulty, alternative = "greater")
-
-# H0: reps and dems had the same voting difficulty
 # Ha = reps had less difficulty voting than dems
 print('H0: Republicans and Democrats had the SAME voting difficulty')
 print('Ha: Republicans had LESS difficulty voting than Democrats')
 wilcox.test(reps$voting_difficulty, dems$voting_difficulty, alternative = "less")
 
+```
+
+
+```{r echo=FALSE}
+#  GRAPHING
+
+graph_data <- sample_data[, c('party_assignment','voting_difficulty')]
+# used to row count
+graph_data$counter <- 1
+
+# total count aggregation, by voting choice
+total_counts <- aggregate(counter~party_assignment, graph_data, length)
+# count aggregation, by party and vote choice
+party_counts <- aggregate(counter~party_assignment+voting_difficulty, graph_data, length)
+
+# assign to party_vote_count to prep for merge
+party_counts$party_vote_count <- party_counts$counter
+party_counts <- party_counts[, c('party_assignment','voting_difficulty', 'party_vote_count')]
+
+# assign to total_party_count to prep for merge
+total_counts$total_party_count <- total_counts$counter
+total_counts <- total_counts[, c('party_assignment', 'total_party_count')]
+
+# merge and calculate party percent per vote choice
+graph_counts <- merge(total_counts, party_counts, 'party_assignment')
+graph_counts$percent <- graph_counts$party_vote_count / graph_counts$total_party_count
+
+# CREATE PLOT
+library(ggplot2)
+ggplot(graph_counts, aes(x=voting_difficulty,y=percent,fill=factor(party_assignment)))+
+  geom_bar(stat="identity",position="dodge")+
+  scale_color_discrete(name="Party",
+                      breaks=c(1, 2),
+                      labels=c("Democrat", "Republican"))+
+  xlab("Voting Difficulty (On a Scale of 1-5)")+ylab("Percent of Political Party")+ggtitle('Voting Difficulty by Political Party')+theme(plot.title = element_text(hjust = 0.5))+labs(fill="Political Party")
 ```
 
 
