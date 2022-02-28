@@ -1,7 +1,7 @@
 ---
 title: "Lab One, Part One"
-author: "PUT YOUR GROUP NAMES HERE"
-date: "PUT THE SUBMISSION DATE HERE"
+author: "Steven Sung, Adam Weintraut, Lawrence Jiang, Tanmay Mahapatra"
+date: "2/27/2022E"
 output:
   pdf_document:
     toc: true
